@@ -6,6 +6,15 @@ import Comparison_graphs as cg
 
 
 def difference_calculation(arry1, arry2):
+    """
+    Takes in two numpy arrays and subtracts one from the other.
+    Then finds the lowest and highest values in the arrays.
+    Used in graph_by_month_over_year
+
+    :param arry1: A numpy array
+    :param arry2: A numpy array
+    :return: a numpy array, lowest value in the array, highest value in the array
+    """
     arry = arry1 - arry2
     a_min = np.amin(arry)
     a_max = np.amax(arry)
@@ -15,11 +24,21 @@ def difference_calculation(arry1, arry2):
 
 def graph_by_month_over_year(df_tmy, df_nasa, df_raws):
     """
+    Graphs two different sets of graphs.
+
+    The first is a graph of the total amount of GHI solar power per month for a single month
+    over a span on years. Example for the span of years 2002 to 2018 I put in a bar graph
+    the sum of the solar GHI radiation for April. This is done for all 12 months. Along with
+    percent differences of those values for the nasa and raws data.
+
+    The second part of this graph is a difference graph of all 12 months is a year. Plotting the
+    differences between 4 different combinations of the data. These's combinations are the differences
+    between each of the three data sets. Then the percent differences between the nasa and raws data
 
     :param df_tmy: tmy dataframe. Only covers one year
     :param df_nasa: Nasa dataframe.
     :param df_raws: RAWS station dataframe.
-    :return:
+    :return: returns nothing. Will output a lot of graphs
     """
     unique_years_raws = np.unique(df_raws.Date_time.dt.year)
     unique_years_nasa = np.unique(df_nasa["YEAR"].values)
@@ -58,10 +77,11 @@ def graph_by_month_over_year(df_tmy, df_nasa, df_raws):
         df_raws_month = df_raws.loc[df_raws.Date_time.dt.month == int(m)]
         df_tmy_month = df_tmy.loc[df_tmy.date.dt.month == int(m)]
 
-        # raws data missing 2008 values for jan to may
+        # raws data missing 2006 values for jan to march
         if mn == 'January' or mn == "February" or mn == 'March':
             df_nasa_month = df_nasa_month.loc[df_nasa_month["YEAR"] != 2006]
 
+        # raws data missing 2018 values for February
         if mn == "February":
             df_nasa_month = df_nasa_month.loc[df_nasa_month["YEAR"] != 2018]
 
@@ -89,6 +109,7 @@ def graph_by_month_over_year(df_tmy, df_nasa, df_raws):
         raw_sum_by_year = np.array(raw_sum_by_year)
         nasa_sum_by_year = np.array(nasa_sum_by_year)
 
+        # Error checking code put in to discover locations of missing data. Will remove later
         try:
             percent_difference = ((raw_sum_by_year - nasa_sum_by_year) /
                               ((raw_sum_by_year + nasa_sum_by_year) / 2)) * 100
@@ -172,11 +193,15 @@ def graph_by_month_over_year(df_tmy, df_nasa, df_raws):
 
 def graph_by_year(df_tmy, df_nasa, df_raws):
     """
+    First thing done is a graph of the GHI solar values of al the years in that dataset.
+    Then by month this function will graph each year of both the nasa and raws datasets.
+    With a line on the y axis to represent the value of
+    the tmy dataset for that year.
 
-    :param df_tmy:
-    :param df_nasa:
-    :param df_raws:
-    :return:
+    :param df_tmy: tmy dataset
+    :param df_nasa: nasa dataset
+    :param df_raws: raw station dataset
+    :return: returns nothing. Outputs some graphs
     """
     unique_years_nasa = np.unique(df_nasa["YEAR"].values)
     unique_years_raws = np.unique(df_raws.Date_time.dt.year)
@@ -240,10 +265,17 @@ def graph_by_year(df_tmy, df_nasa, df_raws):
 
 def preprocess_raws_and_tmy_to_daily_sums(df_raws, df_tmy):
     """
+    Gets the raws and tmy datasets into a form that can be more easily used to sort and search data.
 
-    :param df_raws:
-    :param df_tmy:
-    :return:
+    Transforms the raws Date_time column from string to datetime objects.
+    Then puts the hourly GHI solar values into a daily sum.
+
+    The tmy data has it's GHI solar column put into sum for a day.
+    Then has it's date column transformed to a datetime object
+
+    :param df_raws: Initial Raws dataset
+    :param df_tmy: Initial TMY data set
+    :return: both a tmy and raws solar dataset with daily solar sums indexed by a datetime.
     """
     # done to change string type of "Date_Time" to datetime object for further operations
     df_raws["Date_Time"] = pd.to_datetime(df_raws["Date_Time"])
