@@ -2,8 +2,8 @@ from pandas import read_csv
 import pandas as pd
 import numpy as np
 import sys
-import Comparison_graphs as cg
-
+import Subplot_Comparison_Graphs as scg
+import matplotlib.pyplot as plt
 
 
 def difference_calculation(arry1, arry2):
@@ -70,6 +70,8 @@ def graph_by_month_over_year(df_tmy, df_nasa, df_raws):
         print("I do not have a year matchup")
         sys.exit(0)
 
+    fig = plt.figure(figsize=(20, 20), facecolor='w')
+    count = 1
     for m, mn in month_dict.items():
         print(mn)
         month_names.append(mn)
@@ -99,13 +101,15 @@ def graph_by_month_over_year(df_tmy, df_nasa, df_raws):
         tmy_value = tmy_sum_by_year.values[0][0]
         raw_sum_by_year = raw_sum_by_year.values.transpose()[0]
 
-        cg.all_year_overview_single_month(
+        ax = plt.subplot(4, 4, count)
+        scg.all_year_overview_single_month(
             year_num,
             raw_sum_by_year,
             nasa_sum_by_year[0:len(year_num)],
             tmy_value,
-            mn + " Overview"
+            mn
         )
+        count += 1
 
         raw_sum_by_year = np.array(raw_sum_by_year)
         nasa_sum_by_year = np.array(nasa_sum_by_year)
@@ -119,12 +123,15 @@ def graph_by_month_over_year(df_tmy, df_nasa, df_raws):
             print(nasa_show)
 
         pd_months.append(percent_difference)
-        cg.percent_difference(
+        """
+        scg.percent_difference(
              year_num,
              percent_difference,
              mn + " percent difference",
              "year",
              "binned_by_months/percent_difference/")
+             
+        """
 
         dif_min = np.amin(percent_difference)
         dif_max = np.amax(percent_difference)
@@ -160,8 +167,11 @@ def graph_by_month_over_year(df_tmy, df_nasa, df_raws):
 
         print("for loop complete\n")
 
+    plt.tight_layout()
+    plt.savefig("binned_by_months/subplot.png")
+    plt.show()
 
-    cg.all_month_over_years(
+    scg.all_month_over_years(
         d_y_min_raws_nasa,
         d_y_max_raws_nasa,
         difference_months_raws_nasa,
@@ -170,7 +180,7 @@ def graph_by_month_over_year(df_tmy, df_nasa, df_raws):
         "Difference of raws - nasa",
         "kWh/m2/year"
     )
-    cg.all_month_over_years(
+    scg.all_month_over_years(
         d_y_min_raws_tmy,
         d_y_max_raws_tmy,
         difference_months_raws_tmy,
@@ -179,7 +189,7 @@ def graph_by_month_over_year(df_tmy, df_nasa, df_raws):
         "Difference of raws - tmy",
         "kWh/m2/year"
     )
-    cg.all_month_over_years(
+    scg.all_month_over_years(
         d_y_min_nasa_tmy,
         d_y_max_nasa_tmy,
         difference_months_nasa_tmy,
@@ -188,7 +198,7 @@ def graph_by_month_over_year(df_tmy, df_nasa, df_raws):
         "Difference of nasa - tmy",
         "kWh/m2/year"
     )
-    cg.all_month_over_years(pd_y_min, pd_y_max, pd_months,
+    scg.all_month_over_years(pd_y_min, pd_y_max, pd_months,
                             month_names, years, "percent difference 12 months raws - nasa", "%")
 
 
@@ -220,7 +230,7 @@ def graph_by_year(df_tmy, df_nasa, df_raws):
     tmy_value = df_tmy["solar"].sum()
     year_num = unique_years_raws.astype(np.int)
 
-    cg.yearly_overview(
+    scg.yearly_overview(
         year_num,
         raws_yearly_sum,
         nasa_yearly_sum,
@@ -228,7 +238,11 @@ def graph_by_year(df_tmy, df_nasa, df_raws):
         "Yearly overview"
     )
 
+    fig = plt.figure(figsize=(20, 20), facecolor='w')
+    count = 1
     for yr, yn in zip(unique_years_raws, unique_years_nasa):
+
+
         df_raws_month = df_raws.loc[df_raws.Date_time.dt.year == yr]
         raws_months = np.unique(df_raws_month.Date_time.dt.month)
         months_nasa = np.unique(df_nasa.loc[df_nasa["YEAR"] == yn, "MO"])
@@ -251,17 +265,20 @@ def graph_by_year(df_tmy, df_nasa, df_raws):
         tmy_year_sums = df_tmy.groupby(df_tmy.date.dt.month)["solar"].sum()
 
         print(yr)
-        print(raws_year_sum)
-        print(nasa_monthly_sums)
-        print(tmy_year_sums)
 
-        cg.graph_of_one_year(
+        ax = plt.subplot(4, 4, count)
+        scg.graph_of_one_year(
             raws_months,
             raws_year_sum,
             nasa_monthly_sums,
             tmy_year_sums,
-            str(yr) + " graph of all months"
+            str(yr)
         )
+        count += 1
+
+    plt.tight_layout()
+    plt.savefig("graphed_by_year/subplot.png")
+    plt.show()
 
 
 def preprocess_raws_and_tmy_to_daily_sums(df_raws, df_tmy):
@@ -320,6 +337,4 @@ if __name__ == "__main__":
     df_raws, df_tmy = preprocess_raws_and_tmy_to_daily_sums(df_raws, df_tmy)
 
     graph_by_month_over_year(df_tmy, df_nasa, df_raws)
-    graph_by_year(df_tmy, df_nasa, df_raws)
-
-
+    # graph_by_year(df_tmy, df_nasa, df_raws)
