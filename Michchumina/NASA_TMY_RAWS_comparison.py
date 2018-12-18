@@ -261,7 +261,7 @@ def preprocess_raws_and_tmy_to_daily_sums(df_raws, df_tmy):
 if __name__ == "__main__":
     """
     requires running both nasa "nasa API connect to get new file.py" and
-     "API request for stations data for given timeseries.py" 
+     "Meso_station_download.py" 
      to obtain the required nasa data and RAWS station data to do the comparsions
     """
     df_nasa = read_csv("Minchumina Nasa.csv", header=10)

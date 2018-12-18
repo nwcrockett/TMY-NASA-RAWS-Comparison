@@ -27,6 +27,7 @@ def all_year_overview_single_month(year, raws_values, nasa_values, tmy_value, ti
     bar_width = 0.35
     plt.bar(year, raws_values, bar_width, label="raws radiation")
     plt.bar(year - bar_width, nasa_values, bar_width, label="NASA POWER radiation")
+    plt.ylim(0, 250)
     plt.axhline(y=tmy_value, label="tmy value = %.2f" % tmy_value, color="r")
     plt.xlabel("year")
     plt.ylabel("kWh/m2/year")
@@ -54,6 +55,7 @@ def graph_of_one_year(months, raws_values, nasa_values, tmy_values, title):
     plt.bar(months, raws_values, bar_width, label="raws radiation")
     plt.bar(months - bar_width, nasa_values, bar_width, label="NASA POWER radiation")
     plt.bar(months + bar_width, tmy_values, bar_width, label="TMY radiation")
+    plt.ylim(0, 250)
     plt.xlabel("Month of the year")
     plt.ylabel("kWh/m2/month")
     plt.title(title)

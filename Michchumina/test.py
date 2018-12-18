@@ -150,7 +150,8 @@ def graph_by_month_over_year(df_tmy, df_nasa, df_raws):
         difference_months_raws_nasa,
         month_names,
         years,
-        "Difference of raws - nasa"
+        "Difference of raws - nasa",
+        "kWh/m2/year"
     )
     scg.all_month_over_years(
         d_y_min_raws_tmy,
@@ -158,7 +159,8 @@ def graph_by_month_over_year(df_tmy, df_nasa, df_raws):
         difference_months_raws_tmy,
         month_names,
         years,
-        "Difference of raws - tmy"
+        "Difference of raws - tmy",
+        "kWh/m2/year"
     )
     scg.all_month_over_years(
         d_y_min_nasa_tmy,
@@ -166,10 +168,11 @@ def graph_by_month_over_year(df_tmy, df_nasa, df_raws):
         difference_months_nasa_tmy,
         month_names,
         years,
-        "Difference of nasa - tmy"
+        "Difference of nasa - tmy",
+        "kWh/m2/year"
     )
     scg.all_month_over_years(pd_y_min, pd_y_max, pd_months,
-                            month_names, years, "percent difference 12 months raws - nasa")
+                            month_names, years, "percent difference 12 months raws - nasa", "%")
 
 
 def graph_by_year(df_tmy, df_nasa, df_raws):
@@ -275,7 +278,7 @@ def preprocess_raws_and_tmy_to_daily_sums(df_raws, df_tmy):
 if __name__ == "__main__":
     """
     requires running both nasa "nasa API connect to get new file.py" and
-     "API request for stations data for given timeseries.py" 
+     "Meso_station_download.py" 
      to obtain the required nasa data and RAWS station data to do the comparsions
     """
     df_nasa = read_csv("Minchumina Nasa.csv", header=10)
@@ -289,6 +292,6 @@ if __name__ == "__main__":
 
     df_raws, df_tmy = preprocess_raws_and_tmy_to_daily_sums(df_raws, df_tmy)
 
-    # graph_by_month_over_year(df_tmy, df_nasa, df_raws)
+    graph_by_month_over_year(df_tmy, df_nasa, df_raws)
     graph_by_year(df_tmy, df_nasa, df_raws)
 
