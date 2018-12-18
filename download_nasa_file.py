@@ -29,6 +29,7 @@ def get_the_csv_url(lat, lon, start_time, end_time):
         decoded_content = download.content.decode('utf-8')
         cr = csv.reader(decoded_content.splitlines(), delimiter=',')
         my_list = list(cr)
+        print(my_list)
         for row in my_list:
             if "\"csv\":" in row[0]:
                 temp = row[0].split("\"")
@@ -44,6 +45,7 @@ def output_new_nasa_csv_file(new_filename, csv_url):
         f.write(html)
 
 
+
 lat = 64.835365
 lon = -147.776749
 start = 20050329
@@ -51,4 +53,5 @@ start = 20050329
 end = 20181120
 csv_url = get_the_csv_url(lat, lon, start, end)
 output_new_nasa_csv_file("Fairbanks Nasa.csv", csv_url)
+
 

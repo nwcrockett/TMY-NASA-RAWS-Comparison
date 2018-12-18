@@ -1,8 +1,8 @@
 import pandas as pd
 import csv
 import os
-from datetime import datetime
 import Meso_station_download as msd
+import download_nasa_file as dnf
 
 
 def rename_all_tmy3_files():
@@ -125,6 +125,29 @@ def download_meso_data(time_scale, token_for_meso_api):
         print(count)
 
 
+def download_nasa_data(station_df):
+    count = 0
+    for index, rows in station_df.iterrows():
+        count += 1
+        print(count)
+        print(rows["Meso_site_name"])
+        print(rows["meso_id"])
+        print(str(rows["meso_start"])[0:8])
+        print(str(rows["meso_end"])[0:8])
+        print()
+
+        csv_url = dnf.get_the_csv_url(str(rows["meso_lat"]),
+                                      rows["meso_long"],
+                                      str(rows["meso_start"])[0:8],
+                                      str(rows["meso_end"])[0:8])
+        dnf.output_new_nasa_csv_file("/home/nelson/PycharmProjects/"
+                                     "TMY_NASA_RAWS Comparison/"
+                                     "Alaska_State_Comparison/NASA POWER data/" +
+                                     rows["TMY3_site_name"] + "$" +
+                                     rows["Meso_site_name"] + ".csv",
+                                     csv_url)
+
+
 if __name__ == "__main__":
     # tmy3_meta_df = pd.read_csv("tmy3_name_lat_long.csv", header=1)
     # meso_df = pd.read_csv("Alaska Station MetaData All Solar.csv")
@@ -136,7 +159,9 @@ if __name__ == "__main__":
     # filter_for_meso_stations_for_time_scale(tmy_df, 365)
 
     time_df = pd.read_csv("tmy3_meso_matchup_with_time_scale_365_days.csv")
-    download_meso_data(time_df, "c03f5b124163456898c2a963fa365747")
+    # download_meso_data(time_df, "c03f5b124163456898c2a963fa365747")
+
+    download_nasa_data(time_df)
 
 
 

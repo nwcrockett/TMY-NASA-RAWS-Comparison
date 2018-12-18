@@ -318,7 +318,7 @@ def preprocess_raws_and_tmy_to_daily_sums(df_raws, df_tmy):
 
 if __name__ == "__main__":
     """
-    requires running both nasa "nasa API connect to get new file.py" and
+    requires running both nasa "download_nasa_file.py" and
      "Meso_station_download.py" 
      to obtain the required nasa data and RAWS station data to do the comparsions
     """
