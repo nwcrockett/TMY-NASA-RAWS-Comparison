@@ -5,7 +5,6 @@ import sys
 import Comparison_graphs as cg
 
 
-
 def difference_calculation(arry1, arry2):
     """
     Takes in two numpy arrays and subtracts one from the other.

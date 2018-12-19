@@ -90,6 +90,12 @@ def filter_for_meso_stations_for_time_scale(tmy3_meso_df, days):
     over a time scale. Recommend timescales of at least a month or more since many stations in the
     Meso API have timescales of just one day
 
+    hand altered data for files in meso west with names FT. YUKON, MT. WHITTER, MT. NOAH
+    removed periods for both file tmy3_meso_matchup_with_time_scale_365_days.csv and in directory
+    Meso Station Data
+
+    need to remove periods in code
+
     :param tmy3_meso_df:
     :param days: time scale wanted in days. Recommended in timescales of at least a month
     :return: Nothing. Outputs a csv file with
@@ -161,7 +167,7 @@ if __name__ == "__main__":
     time_df = pd.read_csv("tmy3_meso_matchup_with_time_scale_365_days.csv")
     # download_meso_data(time_df, "c03f5b124163456898c2a963fa365747")
 
-    download_nasa_data(time_df)
+    # download_nasa_data(time_df)
 
 
 
