@@ -1,6 +1,7 @@
 import pandas as pd
 import csv
 import os
+import geopy.distance
 import Meso_station_download as msd
 import download_nasa_file as dnf
 
@@ -41,11 +42,10 @@ def rename_all_tmy3_files():
     meta_data.to_csv("tmy3_name_lat_long.csv")
 
 
-def find_tmy3_meso_station_matchups(meso_df, tmy3_meta_df):
+def find_tmy3_meso_station_matchups(meso_df, tmy3_meta_df, distance=5.0):
     """
     Finds the matchups between a TMY3 site and Meso station
     within 1 degree of longitude or latitude and outputs that data as a csv
-
     :param meso_df: Meso csv/dataframe with the solar metadata for the entire state of Alaska
     :param tmy3_meta_df: TMY3 csv with site name lat and lond
     :return: returns nothing just outputs a csv with the matchups between a TMY3 and Meso stations
@@ -56,28 +56,23 @@ def find_tmy3_meso_station_matchups(meso_df, tmy3_meta_df):
                           "meso_id"]]
     missing_data = [["TMY3_site_name", "tmy_lat", "tmy_long"]]
     for index, row in tmy3_meta_df.iterrows():
-        temp = meso_df.loc[(meso_df["LATITUDE"].round() == round(row["Latitude"]))
-                           & (meso_df["LONGITUDE"].round() == round(row["Longitude"]))]
-        if len(temp.index) == 0:
-            missing_data.append([row["Site_name"], row["Latitude"], row["Longitude"]])
-            continue
-        for i, r in temp.iterrows():
-            time_split = r["solar_radiation"].split(" ")
-            if len(time_split) != 8:
-                print(row["Site_name"])
-                print(time_split)
-                print()
-                continue
-            start_time = time_split[5]
-            start_time = start_time.strip("'',")
-            end_time = time_split[7]
-            end_time = end_time.strip("''}")
-            tmy3_meso_matchup.append([row["Site_name"], r["NAME"],
-                                     row["Latitude"], row["Longitude"],
-                                     r["LATITUDE"], r["LONGITUDE"],
-                                     start_time, end_time,
-                                     r["STID"]])
-
+        for i, r in meso_df.iterrows():
+            if geopy.distance.distance((r["LATITUDE"], r["LONGITUDE"]), (row["Latitude"], row["Longitude"])) < distance:
+                time_split = r["solar_radiation"].split(" ")
+                if len(time_split) != 8:
+                    print(row["Site_name"])
+                    print(time_split)
+                    print()
+                    continue
+                start_time = time_split[5]
+                start_time = start_time.strip("'',")
+                end_time = time_split[7]
+                end_time = end_time.strip("''}")
+                tmy3_meso_matchup.append([row["Site_name"].strip("."), r["NAME"].strip("."),
+                                         row["Latitude"], row["Longitude"],
+                                         r["LATITUDE"], r["LONGITUDE"],
+                                         start_time, end_time,
+                                         r["STID"]])
     tmy_meso_df = pd.DataFrame(tmy3_meso_matchup)
     tmy_meso_df.to_csv("TMY3_Meso_station_matchup.csv")
     missing_data = pd.DataFrame(missing_data)
@@ -86,7 +81,7 @@ def find_tmy3_meso_station_matchups(meso_df, tmy3_meta_df):
 
 def filter_for_meso_stations_for_time_scale(tmy3_meso_df, days):
     """
-    Filters the csv/dataframe with the TMY3 and Meso station matchups to a dataframe/csv result
+    Filters the csv/dataframe with the TMY3 and Meso station match ups to a dataframe/csv result
     over a time scale. Recommend timescales of at least a month or more since many stations in the
     Meso API have timescales of just one day
 
@@ -155,19 +150,19 @@ def download_nasa_data(station_df):
 
 
 if __name__ == "__main__":
-    # tmy3_meta_df = pd.read_csv("tmy3_name_lat_long.csv", header=1)
-    # meso_df = pd.read_csv("Alaska Station MetaData All Solar.csv")
-    # find_tmy3_meso_station_matchups(meso_df, tmy3_meta_df)
-    # tmy3_meso_matchup_df = pd.read_csv("TMY3_Meso_station_matchup.csv", header=1)
+    tmy3_meta_df = pd.read_csv("tmy3_name_lat_long.csv", header=1)
+    meso_df = pd.read_csv("Alaska Station MetaData All Solar.csv")
+    find_tmy3_meso_station_matchups(meso_df, tmy3_meta_df)
+    tmy3_meso_matchup_df = pd.read_csv("TMY3_Meso_station_matchup.csv", header=1)
     os.chdir("/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/Alaska_State_Comparison/Setup")
 
-    # tmy_df = pd.read_csv("TMY3_Meso_station_matchup.csv", header=1)
-    # filter_for_meso_stations_for_time_scale(tmy_df, 365)
+    tmy_df = pd.read_csv("TMY3_Meso_station_matchup.csv", header=1)
+    filter_for_meso_stations_for_time_scale(tmy_df, 365)
 
     time_df = pd.read_csv("tmy3_meso_matchup_with_time_scale_365_days.csv")
-    # download_meso_data(time_df, "c03f5b124163456898c2a963fa365747")
+    download_meso_data(time_df, "c03f5b124163456898c2a963fa365747")
 
-    # download_nasa_data(time_df)
+    download_nasa_data(time_df)
 
 
 

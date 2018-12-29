@@ -6,7 +6,7 @@ from shapely.geometry import Point
 import matplotlib.pyplot as plt
 
 has all been imported
-Doesn't make any sense but I'm not going to bother at this time
+Doesn't make any sense but I'm not going to bother looking into further at this time
 
 """
 
@@ -130,7 +130,6 @@ if __name__ == "__main__":
     long = np.array(df["meso_long"])
     vals = np.array(df["year_difference"])
     x, y = m(long, lat)
-
 
     m.scatter(x, y, c=vals, cmap=plt.get_cmap("gist_ncar"))
     plt.colorbar()
