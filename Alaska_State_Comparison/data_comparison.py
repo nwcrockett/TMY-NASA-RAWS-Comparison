@@ -5,7 +5,7 @@ import sys
 import os
 
 
-def preprocess_raws_and_tmy_to_daily_sums(df_raws, df_tmy):
+def preprocess_raws_and_tmy_to_daily_sums(df_raws, df_tmy, df_nasa):
     """
     Gets the raws and tmy datasets into a form that can be more easily used to sort and search data.
 
@@ -25,6 +25,7 @@ def preprocess_raws_and_tmy_to_daily_sums(df_raws, df_tmy):
     date = pd.to_datetime(raws_solar.index)
     d = {"Date_time": date, "solar": raws_solar}
     df_raws_out = pd.DataFrame(data=d)
+    df_raws_out["Date_string"] = df_raws_out["Date_time"].dt.strftime('%Y-%m-%d')
 
     tmy_solar_sums_by_day = df_tmy.groupby(["year", "month", "day"])["GHI (W/m^2)"].sum() / 1000
     date = []
@@ -37,7 +38,18 @@ def preprocess_raws_and_tmy_to_daily_sums(df_raws, df_tmy):
     tmy_solar_out = pd.DataFrame(data=d)
     tmy_solar_out["date"] = pd.to_datetime(tmy_solar_out["date"])
 
-    return df_raws_out, tmy_solar_out
+    temp = df_nasa.loc[:, ["YEAR", "MO", "DY"]].values.astype(str)
+    for item in temp:
+        if len(item[1]) == 1:
+            item[1] = "0" + item[1]
+        if len(item[2]) == 1:
+            item[2] = "0" + item[2]
+
+    temp = ["-".join(row) for row in temp]
+    date_string = pd.Series(temp, index=df_nasa.index)
+    df_nasa["Date_String"] = date_string
+
+    return df_raws_out, tmy_solar_out, df_nasa
 
 
 def get_directory_lists(tmy_directory, meso_directory, nasa_directory):
@@ -135,10 +147,10 @@ def run_through_data_list(tmy_direct, tmy_path, meso_direct, meso_path, nasa_dir
         df_tmy.loc[df_tmy['GHI (W/m^2)'] < 0, 'GHI (W/m^2)'] = 0
         df_nasa.loc[df_nasa["ALLSKY_SFC_SW_DWN"] < 0, "ALLSKY_SFC_SW_DWN"] = 0
 
-        df_raws, df_tmy = preprocess_raws_and_tmy_to_daily_sums(df_raws, df_tmy)
+        df_raws, df_tmy, df_nasa = preprocess_raws_and_tmy_to_daily_sums(df_raws, df_tmy, df_nasa)
 
-        y_diff_raws_tmy, y_diff_nasa_tmy, y_diff_raws_nasa = average_ghi_difference_by_year(df_tmy, df_nasa, df_raws)
-        month_differences, raws_flag = average_ghi_difference_by_month(df_tmy, df_nasa, df_raws)
+        y_diff_raws_tmy, y_diff_nasa_tmy, y_diff_raws_nasa, month_differences, raws_flag = \
+            average_ghi_difference_by_month(df_tmy, df_nasa, df_raws)
 
         print("year differences " + str(y_diff_raws_tmy))
         print("month differences")
@@ -181,8 +193,8 @@ def run_through_data_list(tmy_direct, tmy_path, meso_direct, meso_path, nasa_dir
         difference_data.append(data)
 
     difference_data = pd.DataFrame(difference_data)
-    difference_data.to_csv("/home/nelson/PycharmProjects/"
-                           "TMY_NASA_RAWS Comparison/difference_data_alaska.csv")
+    difference_data.to_csv("/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison"
+                           "/Alaska_State_Comparison/difference_data_alaska.csv")
 
 
 def average_ghi_difference_by_year(df_tmy, df_nasa, df_raws):
@@ -215,6 +227,12 @@ def average_ghi_difference_by_month(df_tmy, df_nasa, df_raws):
     :param df_raws:
     :return:
     """
+
+    # Sets up a complete date matchup between the nasa and raws datasets
+    df_nasa = df_nasa[df_nasa["Date_String"].isin(df_raws["Date_string"])]
+
+    y_diff_raws_tmy, y_diff_nasa_tmy, y_diff_raws_nasa = average_ghi_difference_by_year(df_tmy, df_nasa, df_raws)
+
     month_dict = [["01", 'January'], ["02", 'February'], ["03", 'March'],
                   ["04", 'April'], ["05", 'May'], ["06", 'June'],
                   ["07", 'July'], ["08", 'August'], ["09", 'September'],
@@ -243,7 +261,7 @@ def average_ghi_difference_by_month(df_tmy, df_nasa, df_raws):
         print(nasa_sum_by_year)
         print("--------------------\n")
 
-        if not raw_sum_by_year.size == 0:
+        if raw_sum_by_year.size == 0:
             difference_nasa_tmy = np.average(nasa_sum_by_year - tmy_value)
             differences_by_month.append([m[0], m[1], "nan",
                                          difference_nasa_tmy, "nan"])
@@ -269,7 +287,7 @@ def average_ghi_difference_by_month(df_tmy, df_nasa, df_raws):
                                          difference_nasa_tmy, difference_raws_nasa])
             flag.append(0)
 
-    return differences_by_month, flag
+    return y_diff_raws_tmy, y_diff_nasa_tmy, y_diff_raws_nasa, differences_by_month, flag
 
 
 if __name__ == "__main__":
