@@ -1,3 +1,12 @@
+"""
+Nelson Crockett
+Setup for using the Meso West weather station data,
+NASA POWER satellite data, and the TMY3 Modeled data
+To create a data comparison based on total daily sum of
+GHI solar energy that hits the earth in the given locations
+
+"""
+
 import pandas as pd
 import csv
 import os
@@ -6,16 +15,26 @@ import Meso_station_download as msd
 import download_nasa_file as dnf
 
 
-def rename_all_tmy3_files():
+def rename_all_tmy3_files(tmy3_original_path, tmy3_storage_path, setup_path):
     """
-    renames all of the TMY3 files to the site name rather than a number
-    also gets the site name, lat, and long from the tmy3 files for
-    each file. Then outputs into a DataFrame that can then be used as a source
-    for download meso raws station data and NASA data
 
+    TMY3 files are originally stored as unique identifying numbers. This is not
+    useful when I need to view specific files to check locations. So this function
+    renames all of the TMY3 files to the site name that corresponds to the stations
+    latitude and longitude.
+
+    This process also creates a DataFrame that is output to a csv which contains
+    the site name, latitude and longitude for each station. Which is then used for
+    downloading Meso West and NASA POWER data Meso Comp
+
+    :param tmy3_original_path: Path to the original TMY3 files
+    :param tmy3_storage_path: Path to the renamed TMY3 files
+    :param setup_path: Path the the setup directory
     :return: Nothing. changes the names of all TMY3 file. Creates new Meta data file
+
     """
-    os.chdir("/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/Alaska_State_Comparison/TMY3 Alaska Original")
+
+    os.chdir(tmy3_original_path)
     directory = os.listdir()
 
     tmy3_name_lat_long = [["Site_name", "Latitude", "Longitude"]]
@@ -25,36 +44,44 @@ def rename_all_tmy3_files():
             mycsv = csv.reader(f)
             mycsv = list(mycsv)
             name = mycsv[0][1]
-            if name == "ANCHORAGE/ELMENDORF":
-                name = "ANCHORAGE_ELMENDORF"
-            elif name == "FAIRBANKS/EIELSON A":
-                name = "FAIRBANKS_EIELSON A"
+            name = name.strip(".")  # another part of the process splits all name on "." to separate out the .csv
+
+            if "/" in name:  # avoid path name mix ups
+                temp = name
+                temp[temp.index("/")] = "_"
+                name = "".join(temp)
+
             lat = mycsv[0][4]
             long = mycsv[0][5]
         f.close()
         tmy_df = pd.read_csv(item, header=1)
-        tmy_df.to_csv("/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/Alaska_State_Comparison/TMY3 Alaska/"
+        tmy_df.to_csv(tmy3_storage_path
                       + name + ".csv")
         tmy3_name_lat_long.append([name, lat, long])
 
     meta_data = pd.DataFrame(tmy3_name_lat_long)
-    os.chdir("/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/Alaska_State_Comparison/Setup")
+    os.chdir(setup_path)
     meta_data.to_csv("tmy3_name_lat_long.csv")
 
 
 def find_tmy3_meso_station_matchups(meso_df, tmy3_meta_df, distance=5.0):
     """
-    Finds the matchups between a TMY3 site and Meso station
-    within 1 degree of longitude or latitude and outputs that data as a csv
-    :param meso_df: Meso csv/dataframe with the solar metadata for the entire state of Alaska
-    :param tmy3_meta_df: TMY3 csv with site name lat and lond
-    :return: returns nothing just outputs a csv with the matchups between a TMY3 and Meso stations
+    Finds the matchups between a TMY3 site and Meso station.
+    Within a given distance in miles and outputs that data as a csv
+
+    :param meso_df: Meso West DataFrame with the solar metadata for the entire state of Alaska
+    :param tmy3_meta_df: TMY3 DataFrame with site name Latitude and Longitude
+    :param distance: The distance in miles for which stations are selected for a match up (Default: 5 miles)
+
+    :return: returns nothing. Outputs a csv with the match ups between a TMY3 and Meso West weather stations
     """
+
     tmy3_meso_matchup = [["TMY3_site_name", "Meso_site_name",
                           "tmy_lat", "tmy_long", "meso_lat",
                           "meso_long", "meso_start", "meso_end",
                           "meso_id"]]
     missing_data = [["TMY3_site_name", "tmy_lat", "tmy_long"]]
+
     for index, row in tmy3_meta_df.iterrows():
         for i, r in meso_df.iterrows():
             if geopy.distance.distance((r["LATITUDE"], r["LONGITUDE"]), (row["Latitude"], row["Longitude"])) < distance:
@@ -73,28 +100,32 @@ def find_tmy3_meso_station_matchups(meso_df, tmy3_meta_df, distance=5.0):
                                          r["LATITUDE"], r["LONGITUDE"],
                                          start_time, end_time,
                                          r["STID"]])
+
     tmy_meso_df = pd.DataFrame(tmy3_meso_matchup)
     tmy_meso_df.to_csv("TMY3_Meso_station_matchup.csv")
     missing_data = pd.DataFrame(missing_data)
-    missing_data.to_csv("TMY3 with no Meso Stations.csv")
+    missing_data.to_csv("TMY3 with no Meso Stations.csv")  # Ease of use tracker for TMY3 stations with no match ups
 
 
 def filter_for_meso_stations_for_time_scale(tmy3_meso_df, days):
     """
-    Filters the csv/dataframe with the TMY3 and Meso station match ups to a dataframe/csv result
-    over a time scale. Recommend timescales of at least a month or more since many stations in the
-    Meso API have timescales of just one day
 
+    Filters the Match up csv/DataFrame with the TMY3 and Meso West station that are in
+    a predetermine distance of each other. To select out stations that only have a timescale that
+    is equal to or greater that the amount of days in the days parameter.
+
+
+    This should now be fixed. Left in just in case at this time.
     hand altered data for files in meso west with names FT. YUKON, MT. WHITTER, MT. NOAH
     removed periods for both file tmy3_meso_matchup_with_time_scale_365_days.csv and in directory
     Meso Station Data
 
-    need to remove periods in code
-
-    :param tmy3_meso_df:
+    :param tmy3_meso_df: csv/DataFrame with TMY3 and Meso West stations within a certain distance
     :param days: time scale wanted in days. Recommended in timescales of at least a month
-    :return: Nothing. Outputs a csv file with
+    :return: Nothing. Outputs a csv file with weather station match ups with timescales greater than or equal to
+        days parameter
     """
+
     tmy3_meso_df = tmy3_meso_df.loc[tmy3_meso_df["meso_start"] != "None"]
     tmy3_meso_df["meso_start"] = pd.to_datetime(tmy3_meso_df["meso_start"], format="%Y-%m-%dT%H:%M:%SZ")
     tmy3_meso_df["meso_end"] = pd.to_datetime(tmy3_meso_df["meso_end"], format="%Y-%m-%dT%H:%M:%SZ")
@@ -108,6 +139,15 @@ def filter_for_meso_stations_for_time_scale(tmy3_meso_df, days):
 
 
 def download_meso_data(time_scale, token_for_meso_api):
+    """
+    Downloads the Meso West station data for all the stations in time_scale.
+    Over the time period in time_scale
+
+    :param time_scale: DataFrame with the stations to be downloaded over a timescale
+    :param token_for_meso_api: Token that is required for Meso West
+    :return: Nothing. Downloads Meso West weather station files.
+    """
+
     count = 0
     for index, rows in time_scale.iterrows():
         count += 1
@@ -126,7 +166,16 @@ def download_meso_data(time_scale, token_for_meso_api):
         print(count)
 
 
-def download_nasa_data(station_df):
+def download_nasa_data_for_meso_comparison(station_df):
+    """
+    Downloads the NASA POWER Latitude and Longitude combinations
+     data for all the locations in station_df.
+    Over the time period in station_df.
+
+    :param station_df: DataFrame with the Latitude and Longitude combinations to be downloaded over a timescale
+    :return: Nothing. Downloads NASA POWER GHI solar files.
+    """
+
     count = 0
     for index, rows in station_df.iterrows():
         count += 1
@@ -143,14 +192,58 @@ def download_nasa_data(station_df):
                                       str(rows["meso_end"])[0:8])
         dnf.output_new_nasa_csv_file("/home/nelson/PycharmProjects/"
                                      "TMY_NASA_RAWS Comparison/"
-                                     "Alaska_State_Comparison/NASA POWER data/" +
+                                     "Alaska_State_Comparison/NASA POWER data Meso Comp/" +
                                      rows["TMY3_site_name"] + "$" +
                                      rows["Meso_site_name"] + ".csv",
                                      csv_url)
 
 
+def download_nasa_data_for_tmy3_comparison(station_df, time_start, time_end):
+    """
+
+    Downloads the NASA POWER Latitude and Longitude combinations
+     data for all the locations in station_df.
+    Over the time period in station_df.
+
+    :param station_df: DataFrame with the Latitude and Longitude combinations to be downloaded over a timescale
+    :return: Nothing. Downloads NASA POWER GHI solar files.
+    """
+
+    count = 0
+    for index, rows in station_df.iterrows():
+        count += 1
+        if count < 59:
+            continue
+        print(count)
+        print(rows["Site_name"])
+        print()
+
+        csv_url = dnf.get_the_csv_url(str(rows["Latitude"]),
+                                      rows["Longitude"],
+                                      time_start,
+                                      time_end)
+        print(csv_url)
+        dnf.output_new_nasa_csv_file("/home/nelson/PycharmProjects/"
+                                     "TMY_NASA_RAWS Comparison/"
+                                     "Alaska_State_Comparison/NASA POWER for TMY3/" +
+                                     rows["Site_name"] + ".csv",
+                                     csv_url)
+
+
 if __name__ == "__main__":
-    tmy3_meta_df = pd.read_csv("tmy3_name_lat_long.csv", header=1)
+    """
+    Only needed if I have new TMY3 files that need to be renamed
+    
+    rename_all_tmy3_files(
+        "/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/Alaska_State_Comparison/TMY3 Alaska Original",
+        "/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/Alaska_State_Comparison/TMY3 Alaska/",
+        "/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/Alaska_State_Comparison/Setup")
+        
+    """
+    tmy3_meta_df = pd.read_csv("/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/"
+                               "Alaska_State_Comparison/Setup/tmy3_name_lat_long.csv", header=1)
+    download_nasa_data_for_tmy3_comparison(tmy3_meta_df, "19910101", "20051230")
+
     meso_df = pd.read_csv("Alaska Station MetaData All Solar.csv")
     find_tmy3_meso_station_matchups(meso_df, tmy3_meta_df)
     tmy3_meso_matchup_df = pd.read_csv("TMY3_Meso_station_matchup.csv", header=1)
@@ -162,7 +255,9 @@ if __name__ == "__main__":
     time_df = pd.read_csv("tmy3_meso_matchup_with_time_scale_365_days.csv")
     download_meso_data(time_df, "c03f5b124163456898c2a963fa365747")
 
-    download_nasa_data(time_df)
+    download_nasa_data_for_meso_comparison(time_df)
+
+
 
 
 

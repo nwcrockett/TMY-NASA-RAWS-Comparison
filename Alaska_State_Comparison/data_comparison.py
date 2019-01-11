@@ -1,23 +1,29 @@
 from pandas import read_csv
 import pandas as pd
 import numpy as np
-import sys
 import os
 
 
-def preprocess_raws_and_tmy_to_daily_sums(df_raws, df_tmy, df_nasa):
+def preprocess_data(df_raws, df_tmy, df_nasa):
     """
-    Gets the raws and tmy datasets into a form that can be more easily used to sort and search data.
+    "Date_String" column is used as a unique identifier
+    so that I can exclude values that do not exist in one DataFrame from another. Mainly used
+    in this process to exclude values from df_nasa in comparisons with df_raws.
 
-    Transforms the raws Date_time column from string to datetime objects.
-    Then puts the hourly GHI solar values into a daily sum.
+    Sums the solar values for df_raws into daily total solar and converts the values to from
+    wh to kWh. Sets the index to a DateTime object. "Date_string" column added for row by row comparisons
+    with the other DataFrames.
 
-    The tmy data has it's GHI solar column put into sum for a day.
-    Then has it's date column transformed to a datetime object
+    Sums the solar values for df_tmy into daily total solar and converts the values to from
+    wh to kWh. Sets the index to a DateTime object.
+
+    df_nasa has a "Date_string" column added for row by row comparisons
+    with the other DataFrames.
 
     :param df_raws: Initial Raws dataset
     :param df_tmy: Initial TMY data set
-    :return: both a tmy and raws solar dataset with daily solar sums indexed by a datetime.
+    :param df_nasa: Initail NASA POWER dataset
+    :return: tmy, raws, and nasa solar datasets.
     """
     # done to change string type of "Date_Time" to datetime object for further operations
     df_raws["Date_Time"] = pd.to_datetime(df_raws["Date_Time"])
@@ -52,7 +58,115 @@ def preprocess_raws_and_tmy_to_daily_sums(df_raws, df_tmy, df_nasa):
     return df_raws_out, tmy_solar_out, df_nasa
 
 
+def preprocess_data_nasa_comparison(df_tmy, df_nasa):
+    temp = df_tmy['Date (MM/DD/YYYY)'].str.split("/")
+    df_tmy[["month", "day", "year"]] = pd.DataFrame(temp.values.tolist(), index=df_tmy.index)
+
+    df_tmy.loc[df_tmy['GHI (W/m^2)'] < 0, 'GHI (W/m^2)'] = 0
+    df_nasa.loc[df_nasa["ALLSKY_SFC_SW_DWN"] < 0, "ALLSKY_SFC_SW_DWN"] = 0
+
+    tmy_solar_sums_by_day = df_tmy.groupby(["year", "month", "day"])["GHI (W/m^2)"].sum() / 1000
+    date = []
+    for item in tmy_solar_sums_by_day.index:
+        year = str(item[0]) + "-"
+        month = str(item[1]) + "-"
+        day = str(item[2])
+        date.append(year + month + day)
+    d = {"solar": tmy_solar_sums_by_day.values, "date": date}
+    tmy_solar_out = pd.DataFrame(data=d)
+    tmy_solar_out["date"] = pd.to_datetime(tmy_solar_out["date"])
+
+    return tmy_solar_out, df_nasa
+
+
+def tmy_nasa_monthly_differences(df_tmy, df_nasa):
+    month_dict = [["01", 'January'], ["02", 'February'], ["03", 'March'],
+                  ["04", 'April'], ["05", 'May'], ["06", 'June'],
+                  ["07", 'July'], ["08", 'August'], ["09", 'September'],
+                  ["10", 'October'], ["11", 'November'], ["12", 'December']]
+
+    differences_by_month = []
+
+    for m in month_dict:
+        df_tmy_month = df_tmy.loc[df_tmy.date.dt.month == int(m[0])]
+        df_nasa_month = df_nasa.loc[df_nasa["MO"] == int(m[0])]
+
+        nasa_sum_by_year = df_nasa_month.groupby("YEAR")["ALLSKY_SFC_SW_DWN"].sum().values
+        tmy_sum_by_year = df_tmy_month.groupby(df_tmy_month.date.dt.year).sum()
+        tmy_value = tmy_sum_by_year.values[0][0]
+
+        nasa_sum_by_year = np.array(nasa_sum_by_year)
+
+        print("--------------------")
+        print(m)
+        print(tmy_value)
+        print(nasa_sum_by_year)
+        print("--------------------\n")
+
+        difference_nasa_tmy = np.average(nasa_sum_by_year - tmy_value)
+        differences_by_month.append([m[0], m[1], difference_nasa_tmy])
+
+    return differences_by_month
+
+
+def tmy_nasa_comparison(nasa_path, tmy_path, df_tmy_meta_data):
+    file_names = os.listdir(tmy_path)
+    file_names.sort()
+
+    difference_data = [["Site_Name", "tmy_lat", "tmy_long",
+                        "year_difference_nasa_tmy", "January_nasa_tmy",
+                        "February_nasa_tmy", "March_nasa_tmy",
+                        "April_nasa_tmy", "May_nasa_tmy",
+                        "June_nasa_tmy", "July_nasa_tmy",
+                        "August_nasa_tmy", "September_nasa_tmy",
+                        "October_nasa_tmy", "November_nasa_tmy",
+                        "December_nasa_tmy"]]
+
+    for file in file_names:
+        name = file.split(".")[0]
+
+        df_tmy = read_csv(tmy_path + "/" + file)
+        df_nasa = read_csv(nasa_path + "/" + file, header=10)
+
+        print(file)
+
+        df_tmy, df_nasa = preprocess_data_nasa_comparison(df_tmy, df_nasa)
+
+        # Calculation for yearly differences. Units in kWh/m^2/year
+        tmy_value = df_tmy["solar"].sum() / 1000
+        nasa_yearly_sum = df_nasa.groupby("YEAR")["ALLSKY_SFC_SW_DWN"].sum()
+        difference_nasa_tmy = np.array(nasa_yearly_sum) - float(tmy_value)
+        yearly_difference_average = np.average(difference_nasa_tmy)
+        month_differences = tmy_nasa_monthly_differences(df_tmy, df_nasa)
+
+        print(name)
+        tmy_lat = df_tmy_meta_data.loc[df_tmy_meta_data["Site_name"] == name, "Latitude"].values[0]
+        tmy_long = df_tmy_meta_data.loc[df_tmy_meta_data["Site_name"] == name, "Longitude"].values[0]
+
+        data = [name, tmy_lat, tmy_long,
+                yearly_difference_average,
+                month_differences[0][2], month_differences[1][2], month_differences[2][2],
+                month_differences[3][2], month_differences[4][2], month_differences[5][2],
+                month_differences[6][2], month_differences[7][2], month_differences[8][2],
+                month_differences[9][2], month_differences[10][2], month_differences[11][2]]
+        difference_data.append(data)
+
+    difference_data = pd.DataFrame(difference_data)
+    difference_data.to_csv("/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison"
+                           "/Alaska_State_Comparison/tmy_nasa_comparison.csv")
+
+
 def get_directory_lists(tmy_directory, meso_directory, nasa_directory):
+    """
+    Returns lists for all of the files in the given directories.
+    Dependent on all of the file names not having a . in the name.
+
+    :param tmy_directory:
+    :param meso_directory:
+    :param nasa_directory:
+    :return: three list with the names of the tmy, meso, and nasa files
+    """
+
     tmy_direct = os.listdir(tmy_directory)
     tmy_direct.sort()
     tmy_direct = [item.split(".") for item in tmy_direct]
@@ -80,7 +194,7 @@ def get_directory_lists(tmy_directory, meso_directory, nasa_directory):
     return tmy, meso, nasa
 
 
-def run_through_data_list(tmy_direct, tmy_path, meso_direct, meso_path, nasa_direct, nasa_path, time_df):
+def run_through_data_list_raws_comp(tmy_direct, tmy_path, meso_direct, meso_path, nasa_direct, nasa_path, time_df):
     """
     fixed this problem but I need to test
 
@@ -147,7 +261,7 @@ def run_through_data_list(tmy_direct, tmy_path, meso_direct, meso_path, nasa_dir
         df_tmy.loc[df_tmy['GHI (W/m^2)'] < 0, 'GHI (W/m^2)'] = 0
         df_nasa.loc[df_nasa["ALLSKY_SFC_SW_DWN"] < 0, "ALLSKY_SFC_SW_DWN"] = 0
 
-        df_raws, df_tmy, df_nasa = preprocess_raws_and_tmy_to_daily_sums(df_raws, df_tmy, df_nasa)
+        df_raws, df_tmy, df_nasa = preprocess_data(df_raws, df_tmy, df_nasa)
 
         y_diff_raws_tmy, y_diff_nasa_tmy, y_diff_raws_nasa, month_differences, raws_flag = \
             average_ghi_difference_by_month(df_tmy, df_nasa, df_raws)
@@ -194,10 +308,23 @@ def run_through_data_list(tmy_direct, tmy_path, meso_direct, meso_path, nasa_dir
 
     difference_data = pd.DataFrame(difference_data)
     difference_data.to_csv("/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison"
-                           "/Alaska_State_Comparison/difference_data_alaska.csv")
+                           "/Alaska_State_Comparison/raws_nasa_tmy_comparison.csv")
 
 
 def average_ghi_difference_by_year(df_tmy, df_nasa, df_raws):
+    """
+    The indexes for the nasa and raws DataFrames are currently matched up in average_ghi_difference_by_month()
+
+    This function does the calculation that sums up the total solar values by year
+    then subtracts one set of solar values from another.
+
+    solar data in form kWh/m^2/year
+
+    :param df_tmy: tmy DataFrame
+    :param df_nasa: NASA POWER DataFrame
+    :param df_raws: Meso West station DataFrame
+    :return: the averages of the arrays from the subtraction of one set yearly solar sums from another
+    """
 
     raws_yearly_sum = df_raws.groupby(df_raws.Date_time.dt.year)["solar"].sum()
     tmy_value = df_tmy["solar"].sum() / 1000
@@ -298,18 +425,32 @@ if __name__ == "__main__":
     df_raws = read_csv("Fairbanks weather station.csv", header=6, skiprows=[7])
     df_tmy = read_csv("Fairbanks Airport tmy3.CSV")
     """
-    tmy_path = "/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/Alaska_State_Comparison/TMY3 Alaska"
-    nasa_path = "/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/Alaska_State_Comparison/NASA POWER data"
+
+    tmy_meta_data_comp = read_csv("/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/"
+                                  "Alaska_State_Comparison/Setup/tmy3_name_lat_long.csv", header=1)
+    tmy_file_path = "/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/Alaska_State_Comparison/TMY3 Alaska"
+    nasa_file_path = "/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/Alaska_State_Comparison/NASA POWER for TMY3"
+
+    tmy_nasa_comparison(
+        nasa_file_path,
+        tmy_file_path,
+        tmy_meta_data_comp)
+
+    """
+    
+    tmy_path_for_raws_comparison = "/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/Alaska_State_Comparison/TMY3 Alaska"
+    nasa_path_for_raws_comparison = "/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/Alaska_State_Comparison/NASA POWER data Meso Comp"
     meso_path = "/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/Alaska_State_Comparison/Meso Station Data"
 
-    tmy, meso, nasa = get_directory_lists(tmy_path, meso_path, nasa_path)
+    tmy, meso, nasa = get_directory_lists(tmy_path_for_raws_comparison, meso_path, nasa_path_for_raws_comparison)
 
     time_df = read_csv("/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/"
                        "Alaska_State_Comparison/Setup/tmy3_meso_matchup_with_time_scale_365_days.csv")
 
-    run_through_data_list(tmy, tmy_path,
-                          meso, meso_path,
-                          nasa, nasa_path,
-                          time_df)
+    run_through_data_list_raws_comp(tmy, tmy_path_for_raws_comparison,
+                                    meso, meso_path,
+                                    nasa, nasa_path_for_raws_comparison,
+                                    time_df)
+    """
 
 

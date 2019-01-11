@@ -47,15 +47,25 @@ nasa_tmy_path = "/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/" \
 raw_nasa_path = "/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/" \
                     "Alaska_State_Comparison/state maps/Raws - Nasa maps"
 
+month_dict = ['January', 'February', 'March',
+              'April', 'May', 'June',
+              'July', 'August', 'September',
+              'October', 'November', 'December']
 
-def graph_alaska(x, y, values, name, mini, path, show=False):
+
+def graph_alaska(x, y, values, name, mini, path, lat, long, show=False):
     plt.figure(figsize=(10, 10))
     m = Basemap(projection='merc', llcrnrlat=50, urcrnrlat=75,
                 llcrnrlon=-180, urcrnrlon=-130, resolution='c')
 
-    m.etopo()
+    m.drawcoastlines()
+    m.drawmapboundary(fill_color='aqua')
+    m.fillcontinents(color='coral', lake_color='aqua')
+    x, y = m(long, lat)
 
-    m.scatter(x, y, c=values, cmap=plt.get_cmap("RdBu"), vmin=mini, vmax=np.abs(mini))
+    m.scatter(long, lat, latlon=True,
+              c=values, cmap=plt.get_cmap("seismic"), vmin=mini,
+              vmax=np.abs(mini), zorder=10)
     cbar = plt.colorbar()
     cbar.set_label("kWH/m2/month")
     plt.title(name)
@@ -64,37 +74,33 @@ def graph_alaska(x, y, values, name, mini, path, show=False):
         plt.show()
 
 
-def graph_months_cleaned_dataframe(df, x, y, show=False):
-    month_dict = ['January', 'February', 'March',
-                  'April', 'May', 'June',
-                  'July', 'August', 'September',
-                  'October', 'November', 'December']
+def graph_months_cleaned_dataframe(df, x, y, lat, long, show=False):
 
     for mn, r_t, n_t, r_n in zip(month_dict, raw_tmy, nasa_tmy, raw_nasa):
         value = np.array(df[r_t])
         value[np.isnan(value)] = 0
         min = np.min(value)
-        graph_alaska(x, y, value, mn, min, raw_tmy_path, show=show)
-
-        value = np.array(df[n_t])
-        value[np.isnan(value)] = 0
-        min = np.min(value)
-        graph_alaska(x, y, value, mn, min, nasa_tmy_path, show=show)
+        graph_alaska(x, y, value, mn, min, raw_tmy_path, lat, long, show=show)
 
         value = np.array(df[r_n])
         value[np.isnan(value)] = 0
         min = np.min(value)
-        graph_alaska(x, y, value, mn, min, raw_nasa_path, show=show)
+        graph_alaska(x, y, value, mn, min, raw_nasa_path, lat, long, show=show)
 
 
-def graph_year(x, y, values, path, show=False):
+def graph_year(x, y, values, path, lat, long, show=False):
     plt.figure(figsize=(10, 10))
     m = Basemap(projection='merc', llcrnrlat=50, urcrnrlat=75,
                 llcrnrlon=-180, urcrnrlon=-130, resolution='c')
 
-    m.etopo()
+    m.drawcoastlines()
+    m.drawmapboundary(fill_color='aqua')
+    m.fillcontinents(color='coral', lake_color='aqua')
+    x, y = m(long, lat)
 
-    m.scatter(x, y, c=values, cmap=plt.get_cmap("gist_ncar"))
+    m.scatter(long, lat, latlon=True,
+              c=values, cmap=plt.get_cmap("gist_ncar"),
+              zorder=10)
     cbar = plt.colorbar()
     cbar.set_label("kWH/m2/year")
     plt.title("Year Differences")
@@ -103,35 +109,93 @@ def graph_year(x, y, values, path, show=False):
         plt.show()
 
 
-def plot_year_differences(df, x, y, show=False):
+def plot_year_differences(df, x, y, lat, long, show=False):
     years = ['year_difference_raws_tmy', 'year_difference_nasa_tmy',
              'year_difference_raws_nasa']
 
     vals = np.array(df[years[0]])
-    graph_year(x, y, vals, raw_tmy_path, show=show)
+    graph_year(x, y, vals, raw_tmy_path, lat, long, show=show)
 
     vals = np.array(df[years[1]])
-    graph_year(x, y, vals, nasa_tmy_path, show=show)
+    graph_year(x, y, vals, nasa_tmy_path, lat, long, show=show)
 
     vals = np.array(df[years[2]])
-    graph_year(x, y, vals, raw_nasa_path, show=show)
+    graph_year(x, y, vals, raw_nasa_path, lat, long, show=show)
 
 
-if __name__ == "__main__":
+def plot_raws_tmy_nasa_comparison():
     df = pd.read_csv("/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/"
                      "Alaska_State_Comparison/difference_data_alaska.csv", header=1)
     m = Basemap(projection='merc', llcrnrlat=50, urcrnrlat=75,
                 llcrnrlon=-180, urcrnrlon=-130, resolution='c')
 
-    m.etopo()
+    m.drawcoastlines()
+    m.drawmapboundary(fill_color='aqua')
+    m.fillcontinents(color='coral', lake_color='aqua')
 
     lat = np.array(df["meso_lat"])
     long = np.array(df["meso_long"])
     x, y = m(long, lat)
 
-    plot_year_differences(df, x, y, show=True)
+    graph_months_cleaned_dataframe(df, x, y, lat, long, show=True)
 
-    graph_months_cleaned_dataframe(df, x, y, show=True)
+
+def graph_alaska_v2(values, name, balancer, path, lat, long, show=False):
+    plt.figure(figsize=(10, 10))
+    m = Basemap(projection='merc', llcrnrlat=50, urcrnrlat=75,
+                llcrnrlon=-180, urcrnrlon=-130, resolution='c')
+
+    m.drawcoastlines()
+    m.drawmapboundary(fill_color='aqua')
+    m.fillcontinents(color='coral', lake_color='aqua')
+
+    m.scatter(long, lat, latlon=True,
+              c=values, cmap=plt.get_cmap("seismic"), vmin=balancer * -1,
+              vmax=np.abs(balancer), zorder=10)
+    cbar = plt.colorbar()
+    cbar.set_label("kWH/m2/month")
+    plt.title(name)
+    plt.savefig(path + "/" + name + ".png")
+    if show:
+        plt.show()
+
+
+def plot_tmy_nasa_comparison():
+    # working on this
+    df = pd.read_csv("/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/"
+                     "Alaska_State_Comparison/tmy_nasa_comparison.csv", header=1)
+
+    m = Basemap(projection='merc', llcrnrlat=50, urcrnrlat=75,
+                llcrnrlon=-180, urcrnrlon=-130, resolution='c')
+
+    m.drawcoastlines()
+    m.drawmapboundary(fill_color='aqua')
+    m.fillcontinents(color='coral', lake_color='aqua')
+
+    lat = np.array(df["tmy_lat"])
+    long = np.array(df["tmy_long"])
+    x, y = m(long, lat)
+
+    year_vals = np.array(df["year_difference_nasa_tmy"])
+    graph_year(x, y, year_vals, nasa_tmy_path, lat, long, show=True)
+
+    for mn, key in zip(month_dict, nasa_tmy):
+        value = np.array(df[key])
+        value[np.isnan(value)] = 0
+        mini = np.min(value)
+        maxi = np.max(value)
+        balancer = max(abs(mini), abs(maxi))
+        graph_alaska_v2(value, mn, balancer, nasa_tmy_path, lat, long, show=True)
+
+
+
+
+
+
+if __name__ == "__main__":
+    # plot_raws_tmy_nasa_comparison()
+    plot_tmy_nasa_comparison()
+
 
 
 

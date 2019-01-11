@@ -29,6 +29,7 @@ def get_the_csv_url(lat, lon, start_time, end_time):
         decoded_content = download.content.decode('utf-8')
         cr = csv.reader(decoded_content.splitlines(), delimiter=',')
         my_list = list(cr)
+        print(my_list)
         for row in my_list:
             if "\"csv\":" in row[0]:
                 temp = row[0].split("\"")
