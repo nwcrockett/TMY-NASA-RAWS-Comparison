@@ -14,8 +14,6 @@ import geopandas
 from shapely.geometry import Point
 import matplotlib.pyplot as plt
 from mpl_toolkits.basemap import Basemap
-import matplotlib.pyplot as plt
-import pandas as pd
 import numpy as np
 
 
@@ -186,10 +184,6 @@ def plot_tmy_nasa_comparison():
         maxi = np.max(value)
         balancer = max(abs(mini), abs(maxi))
         graph_alaska_v2(value, mn, balancer, nasa_tmy_path, lat, long, show=True)
-
-
-
-
 
 
 if __name__ == "__main__":

@@ -107,18 +107,11 @@ def find_tmy3_meso_station_matchups(meso_df, tmy3_meta_df, distance=5.0):
     missing_data.to_csv("TMY3 with no Meso Stations.csv")  # Ease of use tracker for TMY3 stations with no match ups
 
 
-def filter_for_meso_stations_for_time_scale(tmy3_meso_df, days):
+def filter_based_on_time_scale(tmy3_meso_df, days):
     """
-
     Filters the Match up csv/DataFrame with the TMY3 and Meso West station that are in
     a predetermine distance of each other. To select out stations that only have a timescale that
     is equal to or greater that the amount of days in the days parameter.
-
-
-    This should now be fixed. Left in just in case at this time.
-    hand altered data for files in meso west with names FT. YUKON, MT. WHITTER, MT. NOAH
-    removed periods for both file tmy3_meso_matchup_with_time_scale_365_days.csv and in directory
-    Meso Station Data
 
     :param tmy3_meso_df: csv/DataFrame with TMY3 and Meso West stations within a certain distance
     :param days: time scale wanted in days. Recommended in timescales of at least a month
@@ -138,18 +131,18 @@ def filter_for_meso_stations_for_time_scale(tmy3_meso_df, days):
     time_scale.to_csv("tmy3_meso_matchup_with_time_scale_" + str(days) + "_days.csv")
 
 
-def download_meso_data(time_scale, token_for_meso_api):
+def download_meso_data(station_df, token_for_meso_api):
     """
-    Downloads the Meso West station data for all the stations in time_scale.
+    Downloads the Meso West station data for all the stations in station_df DataFrame.
     Over the time period in time_scale
 
-    :param time_scale: DataFrame with the stations to be downloaded over a timescale
+    :param station_df: DataFrame with the stations to be downloaded over a timescale
     :param token_for_meso_api: Token that is required for Meso West
     :return: Nothing. Downloads Meso West weather station files.
     """
 
     count = 0
-    for index, rows in time_scale.iterrows():
+    for index, rows in station_df.iterrows():
         count += 1
         print(rows["meso_id"])
         print(rows["meso_start"])
@@ -200,6 +193,9 @@ def download_nasa_data_for_meso_comparison(station_df):
 
 def download_nasa_data_for_tmy3_comparison(station_df, time_start, time_end):
     """
+    Outputs are different for both the file name and Location.
+    This data is also going to be used for the 68 TMY3 stations rather than the
+    more limited station match up that exists for stations where there is a nearby Meso West weather station
 
     Downloads the NASA POWER Latitude and Longitude combinations
      data for all the locations in station_df.
@@ -250,7 +246,7 @@ if __name__ == "__main__":
     os.chdir("/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/Alaska_State_Comparison/Setup")
 
     tmy_df = pd.read_csv("TMY3_Meso_station_matchup.csv", header=1)
-    filter_for_meso_stations_for_time_scale(tmy_df, 365)
+    filter_based_on_time_scale(tmy_df, 365)
 
     time_df = pd.read_csv("tmy3_meso_matchup_with_time_scale_365_days.csv")
     download_meso_data(time_df, "c03f5b124163456898c2a963fa365747")
