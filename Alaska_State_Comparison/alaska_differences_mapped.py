@@ -58,12 +58,12 @@ def graph_alaska(x, y, values, name, mini, path, lat, long, show=False):
 
     m.drawcoastlines()
     m.drawmapboundary(fill_color='aqua')
-    m.fillcontinents(color='coral', lake_color='aqua')
+    m.fillcontinents(color='white', lake_color='aqua')
     x, y = m(long, lat)
 
     m.scatter(long, lat, latlon=True,
               c=values, cmap=plt.get_cmap("seismic"), vmin=mini,
-              vmax=np.abs(mini), zorder=10)
+              vmax=np.abs(mini), zorder=10, edgecolor="black")
     cbar = plt.colorbar()
     cbar.set_label("kWH/m2/month")
     plt.title(name)
@@ -93,12 +93,12 @@ def graph_year(x, y, values, path, lat, long, show=False):
 
     m.drawcoastlines()
     m.drawmapboundary(fill_color='aqua')
-    m.fillcontinents(color='coral', lake_color='aqua')
+    m.fillcontinents(color='white', lake_color='aqua')
     x, y = m(long, lat)
 
     m.scatter(long, lat, latlon=True,
               c=values, cmap=plt.get_cmap("gist_ncar"),
-              zorder=10)
+              zorder=10, edgecolor="black")
     cbar = plt.colorbar()
     cbar.set_label("kWH/m2/year")
     plt.title("Year Differences")
@@ -129,7 +129,7 @@ def plot_raws_tmy_nasa_comparison():
 
     m.drawcoastlines()
     m.drawmapboundary(fill_color='aqua')
-    m.fillcontinents(color='coral', lake_color='aqua')
+    m.fillcontinents(color='white', lake_color='aqua')
 
     lat = np.array(df["meso_lat"])
     long = np.array(df["meso_long"])
@@ -138,37 +138,41 @@ def plot_raws_tmy_nasa_comparison():
     graph_months_cleaned_dataframe(df, x, y, lat, long, show=True)
 
 
-def graph_alaska_v2(values, name, balancer, path, lat, long, show=False):
+def graph_alaska_v2(values, name, balancer, path, lat, long, show=False, same_scale=False):
     plt.figure(figsize=(10, 10))
     m = Basemap(projection='merc', llcrnrlat=50, urcrnrlat=75,
                 llcrnrlon=-180, urcrnrlon=-130, resolution='c')
 
     m.drawcoastlines()
     m.drawmapboundary(fill_color='aqua')
-    m.fillcontinents(color='coral', lake_color='aqua')
+    m.fillcontinents(color='white', lake_color='aqua')
 
     m.scatter(long, lat, latlon=True,
               c=values, cmap=plt.get_cmap("seismic"), vmin=balancer * -1,
-              vmax=np.abs(balancer), zorder=10)
+              vmax=np.abs(balancer), zorder=10, edgecolor="black")
     cbar = plt.colorbar()
     cbar.set_label("kWH/m2/month")
     plt.title(name)
-    plt.savefig(path + "/" + name + ".png")
+    if same_scale:
+        plt.savefig("/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/"
+                    "Alaska_State_Comparison/state maps/Nasa - tmy same scale" + "/" + name + ".png")
+    else:
+        plt.savefig(path + "/" + name + ".png")
     if show:
         plt.show()
 
 
-def plot_tmy_nasa_comparison():
+def plot_tmy_nasa_comparison(same_scale=False):
     # working on this
     df = pd.read_csv("/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/"
-                     "Alaska_State_Comparison/tmy_nasa_comparison.csv", header=1)
+                     "Alaska_State_Comparison/tmy_nasa_comparison.csv")
 
     m = Basemap(projection='merc', llcrnrlat=50, urcrnrlat=75,
                 llcrnrlon=-180, urcrnrlon=-130, resolution='c')
 
     m.drawcoastlines()
     m.drawmapboundary(fill_color='aqua')
-    m.fillcontinents(color='coral', lake_color='aqua')
+    m.fillcontinents(color='white', lake_color='aqua')
 
     lat = np.array(df["tmy_lat"])
     long = np.array(df["tmy_long"])
@@ -177,18 +181,56 @@ def plot_tmy_nasa_comparison():
     year_vals = np.array(df["year_difference_nasa_tmy"])
     graph_year(x, y, year_vals, nasa_tmy_path, lat, long, show=True)
 
+    balancer = 0
+
+    if same_scale:
+        for mn in nasa_tmy:
+            temp = max(abs(df[mn].values))
+            if temp > balancer:
+                balancer = temp
+
     for mn, key in zip(month_dict, nasa_tmy):
         value = np.array(df[key])
         value[np.isnan(value)] = 0
         mini = np.min(value)
         maxi = np.max(value)
-        balancer = max(abs(mini), abs(maxi))
-        graph_alaska_v2(value, mn, balancer, nasa_tmy_path, lat, long, show=True)
+        if not same_scale:
+            balancer = max(abs(mini), abs(maxi))
+        graph_alaska_v2(value, mn, balancer, nasa_tmy_path, lat, long, show=True, same_scale=same_scale)
+
+
+def plot_flag_locations():
+
+    flag_name = {1: "North above 65 Latitude", 2: "West coastline", 3: "kenai peninsula",
+                 4: "Southeast", 5: "Interior", 6: "Whole state"}
+
+    df = pd.read_csv("/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison"
+                     "/Alaska_State_Comparison/tmy_nasa_comparison_hand_altered.csv")
+
+    m = Basemap(projection='merc', llcrnrlat=50, urcrnrlat=75,
+                llcrnrlon=-180, urcrnrlon=-130, resolution='c')
+
+    m.drawcoastlines()
+    m.drawmapboundary(fill_color='aqua')
+    m.fillcontinents(color='white', lake_color='aqua')
+
+    lat = np.array(df["tmy_lat"])
+    long = np.array(df["tmy_long"])
+    color = df["flag"].values
+
+    m.scatter(long, lat, latlon=True,
+              c=color, zorder=10, cmap=plt.get_cmap("Set1"), edgecolor="black")
+    cbar = plt.colorbar()
+    cbar.set_label("flags")
+    plt.title("Flag Map")
+    plt.savefig("/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/Alaska_State_Comparison/state maps/flag map.png")
+    plt.show()
 
 
 if __name__ == "__main__":
     # plot_raws_tmy_nasa_comparison()
-    plot_tmy_nasa_comparison()
+    # plot_tmy_nasa_comparison(same_scale=True)
+    plot_flag_locations()
 
 
 
