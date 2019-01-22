@@ -179,7 +179,8 @@ def plot_tmy_nasa_comparison(same_scale=False):
     x, y = m(long, lat)
 
     year_vals = np.array(df["year_difference_nasa_tmy"])
-    graph_year(x, y, "Year Differences nasa - tmy", year_vals, nasa_tmy_path, lat, long, show=True)
+    graph_year(x, y, "Year Differences nasa - tmy",
+               year_vals, nasa_tmy_path, lat, long, show=True)
 
     balancer = 0
 
@@ -196,7 +197,8 @@ def plot_tmy_nasa_comparison(same_scale=False):
         maxi = np.max(value)
         if not same_scale:
             balancer = max(abs(mini), abs(maxi))
-        graph_alaska_v2(value, mn + " NASA - tmy", balancer, nasa_tmy_path, lat, long, show=True, same_scale=same_scale)
+        graph_alaska_v2(value, mn + " NASA - tmy", balancer,
+                        nasa_tmy_path, lat, long, show=True, same_scale=same_scale)
 
 
 def plot_flag_locations():
@@ -223,14 +225,15 @@ def plot_flag_locations():
     cbar = plt.colorbar()
     cbar.set_label("flags")
     plt.title("Flag Map ")
-    plt.savefig("/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/Alaska_State_Comparison/state maps/flag map.png")
+    plt.savefig("/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/"
+                "Alaska_State_Comparison/state maps/flag map.png")
     plt.show()
 
 
 if __name__ == "__main__":
-    plot_raws_tmy_nasa_comparison()
-    plot_tmy_nasa_comparison(same_scale=True)
-    plot_flag_locations()
+    # plot_raws_tmy_nasa_comparison()
+    plot_tmy_nasa_comparison(same_scale=False)
+    # plot_flag_locations()
 
 
 
