@@ -208,6 +208,7 @@ def plot_flag_locations():
 
     df = pd.read_csv("/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison"
                      "/Alaska_State_Comparison/tmy_nasa_comparison_hand_altered.csv")
+    plt.figure(figsize=(12, 8))
 
     m = Basemap(projection='merc', llcrnrlat=50, urcrnrlat=75,
                 llcrnrlon=-180, urcrnrlon=-130, resolution='c')
@@ -224,7 +225,9 @@ def plot_flag_locations():
               c=color, zorder=10, cmap=plt.get_cmap("Set1"), edgecolor="black")
     cbar = plt.colorbar()
     cbar.set_label("flags")
-    plt.title("Flag Map ")
+    cbar.ax.set_yticklabels(["North above 65 Latitude", "West Coastline",  "kenai Peninsula",
+                  "Southeast",  "Interior","Whole state of Alaska"])
+    plt.title("Map of Flag Locations ")
     plt.savefig("/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/"
                 "Alaska_State_Comparison/state maps/flag map.png")
     plt.show()
@@ -232,8 +235,8 @@ def plot_flag_locations():
 
 if __name__ == "__main__":
     # plot_raws_tmy_nasa_comparison()
-    plot_tmy_nasa_comparison(same_scale=False)
-    # plot_flag_locations()
+    # plot_tmy_nasa_comparison(same_scale=False)
+    plot_flag_locations()
 
 
 
