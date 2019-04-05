@@ -275,7 +275,7 @@ if __name__ == "__main__":
 
     df_raws, df_tmy = preprocess_raws_and_tmy_to_daily_sums(df_raws, df_tmy)
 
-    # graph_by_month_over_year(df_tmy, df_nasa, df_raws)
+    graph_by_month_over_year(df_tmy, df_nasa, df_raws)
     graph_by_year(df_tmy, df_nasa, df_raws)
 
 
