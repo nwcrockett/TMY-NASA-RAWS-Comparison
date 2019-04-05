@@ -124,6 +124,90 @@ ________________________________________________________________________________
 
 
 Alaska State Comparison
+Comparison of all TMY3 station that match up to Meso West stations and NASA POWER data points
+
+Contains setup directory which was used to download Meso West and NASA POWER data through the corresponding APIs
+
+data_comparison_raws_tmy_nasa.py  # Alaska state comparison with raws, tmy, and nasa data
+data_comparison_nasa_tmy.py  # Alaska state comparison between tmy3 and nasa data
+average_and_std_by_flag.py  # graphing script with colors for specific regions
+alaska_differences_mapped.py  # graphing of data points on map of alaska
+Long_detailed.ipynb  # jupyter notebook detailing process of NASA POWER data collection
+########################################################################################################################
+
+setup.py located in Setup directory
+------------------------------------------------------------------------------------------------------------------------
+From the main function:
+step 1: rename all TMY3 files
+step 2: import meta data file for TMY 3 file that was created as part of step 1
+step 3: Identify and download all match ups of latitude and longitude points of NASA and TMY3 data for a given time
+step 4: Identify all match ups of latitude and longitude points of MESO West and TMY3 data for a given time
+step 5: Drop all MESO West and TMY3 match ups with time scale of less than 1 year
+step 6: Download MESO West data
+Step 7: Download data for NASA and MESO west station match ups
+
+step 1:
+function rename_all_tmy3_files
+All TMY3 original file have a numeric identifier instead of the name of the site as a file name. This is not
+really helpful for later file by file comparisons. So the files are renamed with the actual site name of the
+TMY3 station. As part of this process a meta data file is created with the TMY3 site name and latitude and longitude
+coordinates. Which is then used when making station match up determinations for MESO WEST and NASA data.
+
+step 2-3:
+function download_nasa_data_for_tmy3_comparison.
+Since NASA POWER data covers a time span from the 1980s to the present day over the entire state of Alaska data is
+download for all latitude and longitude combinations for a given time frame.
+
+step 4:
+function find_tmy3_meso_station_matchups.
+Finds all match ups of the TMY3 and MESO west stations for a given distance. Which is currently set to 5 miles.
+Meta data for all Meso West stations that fit the requirement are selected from the file
+Alaska Station MetaData All Solar.csv
+
+step 5-6:
+function filter_based_on_time_scale.
+All match ups for TMY3 and MESO west stations are drop that do not exceed a given time frame of data. Currently set to
+365 days. At this point any remaining match ups are then downloaded.
+
+step 7:
+NASA data is download for all MESO West stations. This is done since the this NASA data will match up the time scale
+of the MESO West data rather than the TMY3 data
+________________________________________________________________________________________________________________________
+
+data_comparison_nasa_tmy.py and data_comparison_raws_tmy_nasa.py
+------------------------------------------------------------------------------------------------------------------------
+These file do a comparison of all data from the files given between NASA POWER, TMY3 and MESO West. The only
+difference between data_comparison_nasa_tmy.py and data_comparison_raws_tmy_nasa.py is that data_comparison_nasa_tmy.py
+only compares data between NASA POWER and TMY3. Which currently represents the output of the analysis. Due to the
+large lack of MESO West data points.
+
+For both scripts files corresponding to the same site are processed at the same time in a loop. Data first has
+a DateTime column added to the DataFrame for ease of comparison with the same time frame. The monthly differences
+are then calculated for each site point. These differences are then added to a DataFrame which is used to map those
+differences on a graph of Alaska.
+________________________________________________________________________________________________________________________
+
+alaska_differences_mapped.py
+------------------------------------------------------------------------------------------------------------------------
+This script plots the differences calculated in data_comparison_nasa_tmy.py and data_comparison_raws_tmy_nasa.py
+onto a map of Alaska.
+
+doing so either by an Identifying flag or just by a difference comparison.
+________________________________________________________________________________________________________________________
+
+average_and_std_by_flag.py
+------------------------------------------------------------------------------------------------------------------------
+Used to plot differences by identifying flag. So that visual comparisons can be made for specific areas of Alaska.
+________________________________________________________________________________________________________________________
+
+Long_detailed.ipynb
+------------------------------------------------------------------------------------------------------------------------
+Jupyter Notebook detailing the process of NASA POWER's data collection. Much is still unknown at this time but
+limit information was available.
+
+
+
+
 
 
 

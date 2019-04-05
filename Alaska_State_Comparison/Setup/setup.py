@@ -227,15 +227,14 @@ def download_nasa_data_for_tmy3_comparison(station_df, time_start, time_end):
 
 
 if __name__ == "__main__":
-    """
-    Only needed if I have new TMY3 files that need to be renamed
+
+    # Only needed if I have new TMY3 files that need to be renamed
     
     rename_all_tmy3_files(
         "/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/Alaska_State_Comparison/TMY3 Alaska Original",
         "/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/Alaska_State_Comparison/TMY3 Alaska/",
         "/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/Alaska_State_Comparison/Setup")
-        
-    """
+
     tmy3_meta_df = pd.read_csv("/home/nelson/PycharmProjects/TMY_NASA_RAWS Comparison/"
                                "Alaska_State_Comparison/Setup/tmy3_name_lat_long.csv", header=1)
     download_nasa_data_for_tmy3_comparison(tmy3_meta_df, "19910101", "20051230")
